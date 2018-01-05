@@ -278,21 +278,19 @@ func TestInvoke(t *testing.T) {
 	c.SetFn("http/Get", http.Get, CheckArity(1))
 	c.SetFn("ioutil/ReadAll", ioutil.ReadAll, CheckArity(1))
 
-	v, err := c.TryEval(mustParse("(let resp (http/Get \"http://www.google.com/robots.txt\"))"))
+	_, err := c.TryEval(mustParse("(let resp (http/Get \"http://www.google.com/robots.txt\"))"))
 	if err != nil {
-		t.Fatalf("http/Get should have generated an error.", err)
+		t.Fatalf("(http/Get ...) should have generated an error.", err)
 	}
 
-	v, err = c.TryEval(mustParse("(. resp Status)"))
+	_, err = c.TryEval(mustParse("(. resp Status)"))
 	if err != nil {
 		t.Fatalf("(. resp Status) should have generated an error.", err)
 	}
-	fmt.Println("------>>>>", v)
 
-	v, err = c.TryEval(mustParse("(ioutil/ReadAll (. resp Body))"))
+	_, err = c.TryEval(mustParse("(ioutil/ReadAll (. resp Body))"))
 	if err != nil {
-		t.Fatalf("(. resp Body) should have generated an error.", err)
+		t.Fatalf("(ioutil/ReadAll (. resp Body)) should have generated an error.", err)
 	}
-	fmt.Println("------>>>>", v)
 
 }
