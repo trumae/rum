@@ -28,6 +28,15 @@ func mustEval(s string) parser.Value {
 	return NewContext(nil).MustEval(mustParse(s))
 }
 
+func runSExpressions(c *Context, exprs []string, t *testing.T) {
+	for _, expr := range exprs {
+		_, err := c.TryEval(mustParse(expr))
+		if err != nil {
+			t.Fatalf(expr, err)
+		}
+	}
+}
+
 func TestArray(t *testing.T) {
 	n := mustEval("(array (+ 1 2))").Value().([]parser.Value)
 	if len(n) != 3 {
@@ -215,61 +224,36 @@ func TestGoFunction(t *testing.T) {
 	c := NewContext(nil)
 
 	c.SetFn("rand", rand.Int63)
-	_, err := c.TryEval(mustParse("(rand)"))
-	if err != nil {
-		t.Fatalf("(rand)", err)
-	}
-
 	c.SetFn("sin", math.Sin)
-	_, err = c.TryEval(mustParse("(sin 1.0)"))
-	if err != nil {
-		t.Fatalf("(sin 1.0)", err)
-	}
-
 	c.SetFn("split", strings.Split)
-	_, err = c.TryEval(mustParse("(split \"1,2,3,4,5\" \",\" )"))
-	if err != nil {
-		t.Fatalf("(split \"1,2,3,4,5\" \",\" )", err)
-	}
 
+	exprs := []string{
+		"(rand)",
+		"(sin 1.0)",
+		"(sin 1.0)",
+		"(print(split \"1,2,3,4,5\" \",\" ))",
+	}
+	runSExpressions(c, exprs, t)
 }
 
 func TestAdapterGoFunctions(t *testing.T) {
 	c := NewContext(nil)
 
 	c.SetFn("rand/Rand", rand.Int63, CheckArity(0))
-	_, err := c.TryEval(mustParse("(rand/Rand)"))
-	if err != nil {
-		t.Fatalf("(rand)", err)
-	}
-
 	c.SetFn("sin", math.Sin, CheckArity(1), ParamToFloat64(0))
-	_, err = c.TryEval(mustParse("(sin 1.0)"))
-	if err != nil {
-		t.Fatalf("(sin 1.0)", err)
-	}
-
-	_, err = c.TryEval(mustParse("(sin 2)"))
-	if err != nil {
-		t.Fatalf("(sin 2)", err)
-	}
-
 	c.SetFn("randn", rand.Int63n, CheckArity(1), ParamToInt64(0))
-	_, err = c.TryEval(mustParse("(randn 100)"))
-	if err != nil {
-		t.Fatalf("(randn 100)", err)
-	}
-
-	_, err = c.TryEval(mustParse("(randn 100.0)"))
-	if err != nil {
-		t.Fatalf("(randn 100.0)", err)
-	}
-
 	c.SetFn("compare", strings.Compare, CheckArity(2))
-	_, err = c.TryEval(mustParse("(compare \"test\" \"test\")"))
-	if err != nil {
-		t.Fatalf("(compare \"test\" \"test\")", err)
+
+	exprs := []string{
+		"(rand/Rand)",
+		"(sin 1.0)",
+		"(sin 2)",
+		"(randn 100)",
+		"(randn 100.0)",
+		"(compare \"test\" \"test\")",
 	}
+
+	runSExpressions(c, exprs, t)
 }
 
 func TestInvoke(t *testing.T) {
@@ -278,32 +262,16 @@ func TestInvoke(t *testing.T) {
 	c.SetFn("now", time.Now, CheckArity(0))
 	c.SetFn("http/Get", http.Get, CheckArity(1))
 	c.SetFn("ioutil/ReadAll", ioutil.ReadAll, CheckArity(1))
-
-	_, err := c.TryEval(mustParse("(let resp (http/Get \"http://www.google.com/robots.txt\"))"))
-	if err != nil {
-		t.Fatalf("(http/Get ...)", err)
-	}
-
-	_, err = c.TryEval(mustParse("(. resp Status)"))
-	if err != nil {
-		t.Fatalf("(. resp Status)", err)
-	}
-
-	_, err = c.TryEval(mustParse("(let respbytes (ioutil/ReadAll (. resp Body)))"))
-	if err != nil {
-		t.Fatalf("(let respbytes (ioutil/ReadAll (. resp Body)))", err)
-	}
-
 	c.SetFn("bytes/NewBuffer", bytes.NewBuffer, CheckArity(1))
-	_, err = c.TryEval(mustParse("(let buf (bytes/NewBuffer respbytes))"))
-	if err != nil {
-		t.Fatalf("(ioutil/ReadAll (. resp Body))", err)
+
+	exprs := []string{
+		"(let resp (http/Get \"http://www.google.com/robots.txt\"))",
+		"(. resp Status)",
+		"(let respbytes (ioutil/ReadAll (. resp Body)))",
+		"(let buf (bytes/NewBuffer respbytes))",
+		"(. buf String)",
+		//"(print (. buf String))",
 	}
 
-	v, err := c.TryEval(mustParse("(. buf String)"))
-	if err != nil {
-		t.Fatalf("(. buf String)", err)
-	}
-	fmt.Println(v)
-
+	runSExpressions(c, exprs, t)
 }
