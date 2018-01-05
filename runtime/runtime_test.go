@@ -28,7 +28,8 @@ func mustEval(s string) parser.Value {
 	return NewContext(nil).MustEval(mustParse(s))
 }
 
-func runSExpressions(c *Context, exprs []string, t *testing.T) {
+//RunSExpressions execute in sequence the sexprs in exprs param using the Context c
+func RunSExpressions(c *Context, exprs []string, t *testing.T) {
 	for _, expr := range exprs {
 		_, err := c.TryEval(mustParse(expr))
 		if err != nil {
@@ -233,7 +234,7 @@ func TestGoFunction(t *testing.T) {
 		"(sin 1.0)",
 		"(print(split \"1,2,3,4,5\" \",\" ))",
 	}
-	runSExpressions(c, exprs, t)
+	RunSExpressions(c, exprs, t)
 }
 
 func TestAdapterGoFunctions(t *testing.T) {
@@ -253,7 +254,7 @@ func TestAdapterGoFunctions(t *testing.T) {
 		"(compare \"test\" \"test\")",
 	}
 
-	runSExpressions(c, exprs, t)
+	RunSExpressions(c, exprs, t)
 }
 
 func TestInvoke(t *testing.T) {
@@ -273,5 +274,5 @@ func TestInvoke(t *testing.T) {
 		//"(print (. buf String))",
 	}
 
-	runSExpressions(c, exprs, t)
+	RunSExpressions(c, exprs, t)
 }
