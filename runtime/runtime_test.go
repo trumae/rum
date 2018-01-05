@@ -217,19 +217,19 @@ func TestGoFunction(t *testing.T) {
 	c.SetFn("rand", rand.Int63)
 	_, err := c.TryEval(mustParse("(rand)"))
 	if err != nil {
-		t.Fatalf("(rand) should have generated an error.", err)
+		t.Fatalf("(rand)", err)
 	}
 
 	c.SetFn("sin", math.Sin)
 	_, err = c.TryEval(mustParse("(sin 1.0)"))
 	if err != nil {
-		t.Fatalf("(sin 1.0) should have generated an error.", err)
+		t.Fatalf("(sin 1.0)", err)
 	}
 
 	c.SetFn("split", strings.Split)
 	_, err = c.TryEval(mustParse("(split \"1,2,3,4,5\" \",\" )"))
 	if err != nil {
-		t.Fatalf("(split \"1,2,3,4,5\" \",\" ) should have generated an error.", err)
+		t.Fatalf("(split \"1,2,3,4,5\" \",\" )", err)
 	}
 
 }
@@ -240,35 +240,35 @@ func TestAdapterGoFunctions(t *testing.T) {
 	c.SetFn("rand/Rand", rand.Int63, CheckArity(0))
 	_, err := c.TryEval(mustParse("(rand/Rand)"))
 	if err != nil {
-		t.Fatalf("(rand) should have generated an error.", err)
+		t.Fatalf("(rand)", err)
 	}
 
 	c.SetFn("sin", math.Sin, CheckArity(1), ParamToFloat64(0))
 	_, err = c.TryEval(mustParse("(sin 1.0)"))
 	if err != nil {
-		t.Fatalf("(sin 1.0) should have generated an error.", err)
+		t.Fatalf("(sin 1.0)", err)
 	}
 
 	_, err = c.TryEval(mustParse("(sin 2)"))
 	if err != nil {
-		t.Fatalf("(sin 2) should have generated an error.", err)
+		t.Fatalf("(sin 2)", err)
 	}
 
 	c.SetFn("randn", rand.Int63n, CheckArity(1), ParamToInt64(0))
 	_, err = c.TryEval(mustParse("(randn 100)"))
 	if err != nil {
-		t.Fatalf("(randn 100) should have generated an error.", err)
+		t.Fatalf("(randn 100)", err)
 	}
 
 	_, err = c.TryEval(mustParse("(randn 100.0)"))
 	if err != nil {
-		t.Fatalf("(randn 100.0) should have generated an error.", err)
+		t.Fatalf("(randn 100.0)", err)
 	}
 
 	c.SetFn("compare", strings.Compare, CheckArity(2))
 	_, err = c.TryEval(mustParse("(compare \"test\" \"test\")"))
 	if err != nil {
-		t.Fatalf("(compare \"test\" \"test\") should have generated an error.", err)
+		t.Fatalf("(compare \"test\" \"test\")", err)
 	}
 }
 
@@ -281,28 +281,28 @@ func TestInvoke(t *testing.T) {
 
 	_, err := c.TryEval(mustParse("(let resp (http/Get \"http://www.google.com/robots.txt\"))"))
 	if err != nil {
-		t.Fatalf("(http/Get ...) should have generated an error.", err)
+		t.Fatalf("(http/Get ...)", err)
 	}
 
 	_, err = c.TryEval(mustParse("(. resp Status)"))
 	if err != nil {
-		t.Fatalf("(. resp Status) should have generated an error.", err)
+		t.Fatalf("(. resp Status)", err)
 	}
 
 	_, err = c.TryEval(mustParse("(let respbytes (ioutil/ReadAll (. resp Body)))"))
 	if err != nil {
-		t.Fatalf("(ioutil/ReadAll (. resp Body)) should have generated an error.", err)
+		t.Fatalf("(ioutil/ReadAll (. resp Body))", err)
 	}
 
 	c.SetFn("bytes/NewBuffer", bytes.NewBuffer, CheckArity(1))
 	_, err = c.TryEval(mustParse("(let buf (bytes/NewBuffer respbytes))"))
 	if err != nil {
-		t.Fatalf("(ioutil/ReadAll (. resp Body)) should have generated an error.", err)
+		t.Fatalf("(ioutil/ReadAll (. resp Body))", err)
 	}
 
 	v, err := c.TryEval(mustParse("(. buf String)"))
 	if err != nil {
-		t.Fatalf("(ioutil/ReadAll (. resp Body)) should have generated an error.", err)
+		t.Fatalf("(ioutil/ReadAll (. resp Body))", err)
 	}
 	fmt.Println(v)
 
