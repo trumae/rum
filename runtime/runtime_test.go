@@ -291,7 +291,7 @@ func TestInvoke(t *testing.T) {
 
 	_, err = c.TryEval(mustParse("(let respbytes (ioutil/ReadAll (. resp Body)))"))
 	if err != nil {
-		t.Fatalf("(ioutil/ReadAll (. resp Body))", err)
+		t.Fatalf("(let respbytes (ioutil/ReadAll (. resp Body)))", err)
 	}
 
 	c.SetFn("bytes/NewBuffer", bytes.NewBuffer, CheckArity(1))
@@ -302,7 +302,7 @@ func TestInvoke(t *testing.T) {
 
 	v, err := c.TryEval(mustParse("(. buf String)"))
 	if err != nil {
-		t.Fatalf("(ioutil/ReadAll (. resp Body))", err)
+		t.Fatalf("(. buf String)", err)
 	}
 	fmt.Println(v)
 
