@@ -1,6 +1,7 @@
 package runtime
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"math"
@@ -288,9 +289,21 @@ func TestInvoke(t *testing.T) {
 		t.Fatalf("(. resp Status) should have generated an error.", err)
 	}
 
-	_, err = c.TryEval(mustParse("(ioutil/ReadAll (. resp Body))"))
+	_, err = c.TryEval(mustParse("(let respbytes (ioutil/ReadAll (. resp Body)))"))
 	if err != nil {
 		t.Fatalf("(ioutil/ReadAll (. resp Body)) should have generated an error.", err)
 	}
+
+	c.SetFn("bytes/NewBuffer", bytes.NewBuffer, CheckArity(1))
+	_, err = c.TryEval(mustParse("(let buf (bytes/NewBuffer respbytes))"))
+	if err != nil {
+		t.Fatalf("(ioutil/ReadAll (. resp Body)) should have generated an error.", err)
+	}
+
+	v, err := c.TryEval(mustParse("(. buf String)"))
+	if err != nil {
+		t.Fatalf("(ioutil/ReadAll (. resp Body)) should have generated an error.", err)
+	}
+	fmt.Println(v)
 
 }
