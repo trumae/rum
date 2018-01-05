@@ -2,10 +2,13 @@ package runtime
 
 import (
 	"fmt"
+	"io/ioutil"
 	"math"
+	"net/http"
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"math/rand"
 
@@ -217,58 +220,79 @@ func TestGoFunction(t *testing.T) {
 	}
 
 	c.SetFn("sin", math.Sin)
-	v, err := c.TryEval(mustParse("(sin 1.0)"))
+	_, err = c.TryEval(mustParse("(sin 1.0)"))
 	if err != nil {
 		t.Fatalf("(sin 1.0) should have generated an error.", err)
 	}
 
 	c.SetFn("split", strings.Split)
-	v, err = c.TryEval(mustParse("(split \"1,2,3,4,5\" \",\" )"))
+	_, err = c.TryEval(mustParse("(split \"1,2,3,4,5\" \",\" )"))
 	if err != nil {
 		t.Fatalf("(split \"1,2,3,4,5\" \",\" ) should have generated an error.", err)
 	}
 
-	fmt.Println(v)
 }
 
 func TestAdapterGoFunctions(t *testing.T) {
 	c := NewContext(nil)
 
-	c.SetFn("rand", rand.Int63, CheckArity(0))
-	_, err := c.TryEval(mustParse("(rand)"))
+	c.SetFn("rand/Rand", rand.Int63, CheckArity(0))
+	_, err := c.TryEval(mustParse("(rand/Rand)"))
 	if err != nil {
 		t.Fatalf("(rand) should have generated an error.", err)
 	}
 
 	c.SetFn("sin", math.Sin, CheckArity(1), ParamToFloat64(0))
-	v, err := c.TryEval(mustParse("(sin 1.0)"))
+	_, err = c.TryEval(mustParse("(sin 1.0)"))
 	if err != nil {
 		t.Fatalf("(sin 1.0) should have generated an error.", err)
 	}
 
-	v, err = c.TryEval(mustParse("(sin 2)"))
+	_, err = c.TryEval(mustParse("(sin 2)"))
 	if err != nil {
 		t.Fatalf("(sin 2) should have generated an error.", err)
 	}
 
 	c.SetFn("randn", rand.Int63n, CheckArity(1), ParamToInt64(0))
-	v, err = c.TryEval(mustParse("(randn 100)"))
+	_, err = c.TryEval(mustParse("(randn 100)"))
 	if err != nil {
 		t.Fatalf("(randn 100) should have generated an error.", err)
 	}
-	fmt.Println(v)
 
-	v, err = c.TryEval(mustParse("(randn 100.0)"))
+	_, err = c.TryEval(mustParse("(randn 100.0)"))
 	if err != nil {
 		t.Fatalf("(randn 100.0) should have generated an error.", err)
 	}
-	fmt.Println(v)
 
 	c.SetFn("compare", strings.Compare, CheckArity(2))
-	v, err = c.TryEval(mustParse("(compare \"test\" \"test\")"))
+	_, err = c.TryEval(mustParse("(compare \"test\" \"test\")"))
 	if err != nil {
 		t.Fatalf("(compare \"test\" \"test\") should have generated an error.", err)
 	}
-	fmt.Println(v)
+}
+
+func TestInvoke(t *testing.T) {
+	c := NewContext(nil)
+
+	c.SetFn("now", time.Now, CheckArity(0))
+	c.SetFn("http/Get", http.Get, CheckArity(1))
+	c.SetFn("ioutil/ReadAll", ioutil.ReadAll, CheckArity(1))
+
+	v, err := c.TryEval(mustParse("(let resp (http/Get \"http://www.google.com/robots.txt\"))"))
+	if err != nil {
+		t.Fatalf("http/Get should have generated an error.", err)
+	}
+
+	v, err = c.TryEval(mustParse("(. resp Status)"))
+	if err != nil {
+		t.Fatalf("(. resp Status) should have generated an error.", err)
+	}
+	fmt.Println("------>>>>", v)
+
+	v, err = c.TryEval(mustParse("(ioutil/ReadAll (. resp Body))"))
+	if err != nil {
+		t.Fatalf("(. resp Body) should have generated an error.", err)
+	}
+	fmt.Println("------>>>>", v)
 
 }
