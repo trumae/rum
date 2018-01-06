@@ -3,6 +3,7 @@ package runtime
 import (
 	"bytes"
 	"fmt"
+	"image"
 	"io/ioutil"
 	"math"
 	"net/http"
@@ -272,6 +273,46 @@ func TestInvoke(t *testing.T) {
 		"(let buf (bytes/NewBuffer respbytes))",
 		"(. buf String)",
 		//"(print (. buf String))",
+	}
+
+	RunSExpressions(c, exprs, t)
+}
+
+func TestNew(t *testing.T) {
+	c := NewContext(nil)
+
+	c.RegisterType((*time.Duration)(nil))
+	c.RegisterType((*image.RGBA)(nil))
+
+	exprs := []string{
+		"(.New image.RGBA)",
+		"(.New time.Duration)",
+	}
+
+	RunSExpressions(c, exprs, t)
+}
+
+func TestSet(t *testing.T) {
+	c := NewContext(nil)
+
+	c.SetFn("now", time.Now, CheckArity(0))
+	c.RegisterType((*time.Duration)(nil))
+	c.RegisterType((*time.Time)(nil))
+	c.RegisterType((*http.Transport)(nil))
+
+	exprs := []string{
+		"(let val (.New time.Duration))",
+		"(let n (now))",
+		"(print n)",
+		"(print val)",
+		"(print 0 (coerce time.Duration 0) (coerce time.Duration 10000))",
+		//"(let val2 (coerce time.Duration 10000))",
+		"(let val2 (.New time.Duration))",
+		"(.Set val val2)",
+
+		//"(let trans (.New net/http.Transport))",
+		//"(let trans2 (.New net/http.Transport))",
+		///"(.Set trans trans2)",
 	}
 
 	RunSExpressions(c, exprs, t)

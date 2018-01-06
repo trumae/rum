@@ -75,8 +75,9 @@ type Internal func(*Context, ...parser.Value) parser.Value
 
 // Context contains details about the current execution frame.
 type Context struct {
-	parent *Context
-	env    map[parser.Identifier]parser.Value
+	parent       *Context
+	env          map[parser.Identifier]parser.Value
+	typeRegistry map[string]reflect.Type
 }
 
 // Get returns the content of the specified variable. It will automatically
@@ -100,30 +101,6 @@ func (c *Context) Get(id parser.Identifier) parser.Value {
 func (c *Context) Set(id parser.Identifier, v parser.Value) parser.Value {
 	c.env[id] = v
 	return v
-}
-
-// SetFn an function in parser function map
-func (c *Context) SetFn(id parser.Identifier, v interface{}, adapters ...Adapter) {
-	f := func(values ...interface{}) interface{} {
-		args := values
-		var err error
-		for _, adapter := range adapters {
-			args, err = adapter(args...)
-			if err != nil {
-				panic(fmt.Sprint("Error in adapter", values[0], err))
-			}
-		}
-
-		vargs := []reflect.Value{}
-		for _, arg := range args {
-			vargs = append(vargs, reflect.ValueOf(arg))
-		}
-
-		result := reflect.ValueOf(v).Call(vargs)
-		return result[0].Interface()
-	}
-
-	c.env[id] = parser.NewAny(f, nil)
 }
 
 // dispatch takes the provided value, evaluates it based on the current content
@@ -235,8 +212,9 @@ func (c *Context) MustEval(input parser.Value) parser.Value {
 // instance and load default parser funcrions
 func NewContext(parent *Context) *Context {
 	c := &Context{
-		parent: parent,
-		env:    make(map[parser.Identifier]parser.Value),
+		parent:       parent,
+		env:          make(map[parser.Identifier]parser.Value),
+		typeRegistry: make(map[string]reflect.Type),
 	}
 
 	if parent == nil {
@@ -249,7 +227,10 @@ func NewContext(parent *Context) *Context {
 			"lambda":   Internal(Lambda),
 			"eval":     Internal(Eval),
 			"for":      Internal(For),
+			"coerce":   Internal(Coerce),
 			".":        Internal(Invoke),
+			".New":     Internal(New),
+			".Set":     Internal(Set),
 			"panic":    Panic,
 			"len":      Length,
 			"print":    Print,
@@ -277,6 +258,12 @@ func NewContext(parent *Context) *Context {
 	}
 
 	return c
+}
+
+//RegisterType register an new type in runtime. A nil or zero typed value must be the parameter
+func (c *Context) RegisterType(typedNil interface{}) {
+	t := reflect.TypeOf(typedNil).Elem()
+	c.typeRegistry[t.PkgPath()+"."+t.Name()] = t
 }
 
 // Array define single or multiple-dimension arrays using the make-array function
@@ -480,44 +467,28 @@ func For(ctx *Context, args ...parser.Value) parser.Value {
 
 //Dump the context content
 func (c *Context) Dump() {
+	fmt.Println("Env")
 	for id, val := range c.env {
 		fmt.Println(id, val)
 	}
+
+	fmt.Println("Type")
+	for key, val := range c.typeRegistry {
+		fmt.Println(key, val)
+	}
 }
 
-//Invoke call a method from native value
-func Invoke(ctx *Context, args ...parser.Value) parser.Value {
+//Coerce returns the value v converted to type t
+func Coerce(ctx *Context, args ...parser.Value) parser.Value {
 	if len(args) < 2 {
 		panic("Invalid arguments")
 	}
 
-	obj := ctx.MustEval(args[0]).Value()
-	descriptor := args[1].String()
-	descriptor = descriptor[5 : len(descriptor)-1]
+	name := args[0].String()
+	name = name[5 : len(name)-1]
+	obj := reflect.ValueOf(ctx.MustEval(args[1]).Value())
 
-	method := reflect.ValueOf(obj).MethodByName(descriptor)
-	if method.IsValid() {
-		vargs := []reflect.Value{}
-		for _, arg := range args[2:] {
-			vargs = append(vargs, reflect.ValueOf(ctx.MustEval(arg).Value()))
-		}
+	ret := obj.Convert(ctx.typeRegistry[name])
 
-		result := method.Call(vargs)
-		return parser.NewAny(result[0].Interface(), nil)
-	}
-
-	if reflect.ValueOf(obj).Type().Kind() == reflect.Ptr {
-		field := reflect.Indirect(reflect.ValueOf(obj)).FieldByName(descriptor)
-		if field.IsValid() {
-			return parser.NewAny(field.Interface(), nil)
-		}
-	} else {
-		field := reflect.ValueOf(obj).FieldByName(descriptor)
-		if field.IsValid() {
-			return parser.NewAny(field.Interface(), nil)
-		}
-	}
-
-	panic("Method or field not found: '" + descriptor +
-		"' in type: " + reflect.ValueOf(obj).Type().String())
+	return parser.NewAny(ret, nil)
 }
